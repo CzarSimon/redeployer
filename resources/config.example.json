@@ -1,0 +1,10 @@
+{
+    "keyHash": "2bf2f3e79f740a79622b0ca7738aa58a7463e27186d903129944838d679e0f65",
+    "services": {
+        "httplogger": {
+            "id": "httplogger",
+            "binary": "/bin/sh",
+            "script": "./resources/httplogger.sh"
+        }
+    }
+}
