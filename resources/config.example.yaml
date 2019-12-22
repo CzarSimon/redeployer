@@ -6,4 +6,4 @@ services:
         id: httplogger
         binary: /bin/sh
         script: ./resources/httplogger.sh
-        mustMatch: "^czarsimon/httplogger:*"
+        mustMatch: "^czarsimon/httplogger:.*"

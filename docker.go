@@ -42,7 +42,7 @@ func (c *cliDockerClient) GetImageID(ctx *Context, name string) (string, error) 
 		Script: "ps",
 	}
 
-	filter := fmt.Sprintf("name=%s", name)
+	filter := fmt.Sprintf("name=^%s$", name)
 	output, err := target.execute(ctx, "-a", "--filter", filter, "--format", "{{.Image}}")
 	if output == "" {
 		return "", errNoSuchContainer
