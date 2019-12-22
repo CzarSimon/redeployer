@@ -17,10 +17,12 @@ const (
 )
 
 var (
-	errMethodNotAllowed = fmt.Errorf("Method not allowed")
-	errUnauthorized     = fmt.Errorf("Unauthorized")
-	errInternalError    = fmt.Errorf("Internal error")
-	errBadRequest       = fmt.Errorf("Bad request")
+	errBadRequest       = fmt.Errorf("Bad request")        // 400
+	errUnauthorized     = fmt.Errorf("Unauthorized")       // 401
+	errForbidden        = fmt.Errorf("Forbidden")          // 403
+	errNotFound         = fmt.Errorf("Not found")          // 404
+	errMethodNotAllowed = fmt.Errorf("Method not allowed") // 405
+	errInternalError    = fmt.Errorf("Internal error")     // 500
 )
 
 // Context request context.
@@ -119,15 +121,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx.sendError(err, http.StatusInternalServerError)
 		return
 	}
+	defer recoverFromPanic(ctx, "handler.ServeHTTP", true)
 
 	logIncommingRequest(ctx)
-	defer func() {
-		logOutgoingRequest(ctx, status)
-	}()
 
 	err = assertMehthod(ctx, h.method, w)
 	if err != nil {
 		status = http.StatusMethodNotAllowed
+		logOutgoingRequest(ctx, status)
 		return
 	}
 
@@ -135,6 +136,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		status = http.StatusUnauthorized
 		ctx.sendError(err, http.StatusUnauthorized)
+		logOutgoingRequest(ctx, status)
 		return
 	}
 
@@ -143,6 +145,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ctx.sendError(err, status)
 	}
+	logOutgoingRequest(ctx, status)
 }
 
 func (h *handler) authenticate(r *http.Request) error {
@@ -214,4 +217,18 @@ func (ctx *Context) sendOK() {
 	ctx.w.Header().Set(contentTypeHeader, "application/json")
 	ctx.w.WriteHeader(http.StatusOK)
 	ctx.w.Write(r)
+}
+
+func recoverFromPanic(ctx *Context, event string, sendError bool) {
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("[recover] Cause: %v", r)
+		}
+
+		log.Errorw(event+" caused a panic", "error", err, "requestId", ctx.id)
+		if sendError {
+			ctx.sendError(errInternalError, http.StatusInternalServerError)
+		}
+	}
 }

@@ -125,6 +125,30 @@ func TestRedeploy_notOk(t *testing.T) {
 	})
 	resNoAuth := performTestRequest(server.Handler, reqNoAuth)
 	assert.Equal(http.StatusUnauthorized, resNoAuth.Code)
+
+	reqForbidden1 := createTestRequest("/redeploy", http.MethodPost, RedeploymentRequest{
+		Target: "test-svc",
+		Image:  "repository/other:1.1",
+	})
+	reqForbidden1.Header.Set(tokenHeader, deployToken)
+	resForbidden1 := performTestRequest(server.Handler, reqForbidden1)
+	assert.Equal(http.StatusForbidden, resForbidden1.Code)
+
+	reqForbidden2 := createTestRequest("/redeploy", http.MethodPost, RedeploymentRequest{
+		Target: "test-svc",
+		Image:  "other/svc:1.1",
+	})
+	reqForbidden2.Header.Set(tokenHeader, deployToken)
+	resForbidden2 := performTestRequest(server.Handler, reqForbidden2)
+	assert.Equal(http.StatusForbidden, resForbidden2.Code)
+
+	reqForbidden3 := createTestRequest("/redeploy", http.MethodPost, RedeploymentRequest{
+		Target: "test-svc",
+		Image:  "other-start-repository/other:1.1",
+	})
+	reqForbidden3.Header.Set(tokenHeader, deployToken)
+	resForbidden3 := performTestRequest(server.Handler, reqForbidden3)
+	assert.Equal(http.StatusForbidden, resForbidden3.Code)
 }
 
 func TestHealth(t *testing.T) {

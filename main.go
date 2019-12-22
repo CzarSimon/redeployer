@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	stdLog "log"
 	"net/http"
+	"regexp"
 
 	"go.uber.org/zap"
 )
@@ -16,8 +17,6 @@ var log = getLogger()
 var (
 	port       = flag.Int("port", 9000, "Port to expose webhooks on")
 	configPath = flag.String("config", "/etc/redeployer/config.json", "Path to configuration")
-
-	errTargetNotFound = fmt.Errorf("Redeployment target not found")
 )
 
 type env struct {
@@ -47,9 +46,9 @@ func (e *env) triggerRedeployment(ctx *Context) (int, error) {
 		return http.StatusBadRequest, errBadRequest
 	}
 
-	target, ok := e.cfg.Services[req.Target]
-	if !ok {
-		return http.StatusNotFound, errTargetNotFound
+	target, status, err := e.findTarget(ctx, req)
+	if err != nil {
+		return status, err
 	}
 
 	go e.redeploy(ctx, target, req.Image)
@@ -60,7 +59,31 @@ func (e *env) triggerRedeployment(ctx *Context) (int, error) {
 	return http.StatusOK, nil
 }
 
+func (e *env) findTarget(ctx *Context, req RedeploymentRequest) (Target, int, error) {
+	var target Target
+	target, ok := e.cfg.Services[req.Target]
+	if !ok {
+		return target, http.StatusNotFound, errNotFound
+	}
+
+	pattern, err := regexp.Compile(target.MustMatch)
+	if err != nil {
+		log.Errorw("Failed to compile regex", "service", target.ID, "error", err, "requestId", ctx.id)
+		return target, http.StatusInternalServerError, errInternalError
+	}
+
+	ok = pattern.MatchString(req.Image)
+	if !ok {
+		log.Errorw("Image did not match target", "image", req.Image, "regex", target.MustMatch, "requestId", ctx.id)
+		return target, http.StatusForbidden, errForbidden
+	}
+
+	return target, http.StatusOK, nil
+}
+
 func (e *env) redeploy(ctx *Context, target Target, image string) {
+	defer recoverFromPanic(ctx, "env.redeploy", false)
+
 	log.Debugw("Redeploying service", "service", target.ID, "image", image, "requestId", ctx.id)
 	previous, removeOld, err := e.prepareDeployment(ctx, target, image)
 	if err != nil {
@@ -130,6 +153,14 @@ func newEnv() *env {
 	err = json.Unmarshal(raw, &cfg)
 	if err != nil {
 		log.Fatalw("Failed to parse config file", "error", err)
+	}
+
+	for _, target := range cfg.Services {
+		_, err = regexp.Compile(target.MustMatch)
+		if err != nil {
+			msg := fmt.Sprintf("Invalid regex [%s] for target: %s", target.MustMatch, target.ID)
+			log.Fatalw(msg, "error", err)
+		}
 	}
 
 	return &env{
