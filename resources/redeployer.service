@@ -1,0 +1,9 @@
+[Unit]
+Description=Simple HTTP service to trigger redeployment via shell script
+Documentation=https://github.com/CzarSimon/redeployer/
+
+[Service]
+ExecStart=/usr/bin/redeployer -config /etc/redeployer/config.yaml -port 9000
+
+[Install]
+WantedBy=multi-user.target
