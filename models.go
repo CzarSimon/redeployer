@@ -6,8 +6,14 @@ import "strings"
 
 // Config service configuration
 type Config struct {
-	KeyHash  string            `json:"keyHash,omitempty"`
-	Services map[string]Target `json:"services,omitempty"`
+	Authentication AuthKey           `json:"authentication,omitempty"`
+	Services       map[string]Target `json:"services,omitempty"`
+}
+
+// AuthKey authentication key
+type AuthKey struct {
+	Key  string `json:"key,omitempty"`
+	Salt string `json:"salt,omitempty"`
 }
 
 // RedeploymentRequest request body for redeployments.
@@ -23,9 +29,10 @@ type ResponseMessage struct {
 
 // Target defines a script to be run by a webhook trigger.
 type Target struct {
-	ID     string `json:"id,omitempty"`
-	Binary string `json:"binary,omitempty"`
-	Script string `json:"script,omitempty"`
+	ID        string `json:"id,omitempty"`
+	Binary    string `json:"binary,omitempty"`
+	Script    string `json:"script,omitempty"`
+	MustMatch string `json:"mustMatch,omitempty"`
 }
 
 func (t Target) execute(ctx *Context, args ...string) (string, error) {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -62,13 +61,19 @@ func newContext(w http.ResponseWriter, r *http.Request) (*Context, error) {
 // and wrapping HandlerFuncs with error handling an logging.
 type router struct {
 	mux     *http.ServeMux
-	keyHash string
+	authKey scryptKey
 }
 
-func newRouter(keyHash string) *router {
+func newRouter(authKey AuthKey) *router {
+	key, err := parseKey(authKey.Key)
+	if err != nil {
+		log.Fatalw("Failed to parse key", "key", authKey.Key, "")
+	}
+	key.salt = authKey.Salt
+
 	return &router{
 		mux:     http.NewServeMux(),
-		keyHash: keyHash,
+		authKey: key,
 	}
 }
 
@@ -77,11 +82,11 @@ func (router *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *router) GET(pattern string, h handlerFunc, useAuth bool) {
-	router.mux.Handle(pattern, newHandler(http.MethodGet, h, router.keyHash, useAuth))
+	router.mux.Handle(pattern, newHandler(http.MethodGet, h, router.authKey, useAuth))
 }
 
 func (router *router) POST(pattern string, h handlerFunc, useAuth bool) {
-	router.mux.Handle(pattern, newHandler(http.MethodPost, h, router.keyHash, useAuth))
+	router.mux.Handle(pattern, newHandler(http.MethodPost, h, router.authKey, useAuth))
 }
 
 // HandlerFunc signature of a request handler.
@@ -92,17 +97,17 @@ type handlerFunc func(*Context) (int, error)
 type handler struct {
 	method  string
 	handle  handlerFunc
-	keyHash string
+	authKey scryptKey
 	useAuth bool
 }
 
 // NewHandler creates and returns a new Handler.
-func newHandler(method string, h handlerFunc, keyHash string, useAuth bool) *handler {
+func newHandler(method string, h handlerFunc, key scryptKey, useAuth bool) *handler {
 	return &handler{
 		method:  method,
 		handle:  h,
 		useAuth: useAuth,
-		keyHash: keyHash,
+		authKey: key,
 	}
 }
 
@@ -146,7 +151,12 @@ func (h *handler) authenticate(r *http.Request) error {
 	}
 
 	token := r.Header.Get(tokenHeader)
-	if h.keyHash != fmt.Sprintf("%x", sha256.Sum256([]byte(token))) {
+	hash, err := deriveKey(token, h.authKey)
+	if err != nil {
+		return errInternalError
+	}
+
+	if h.authKey.hash != hash {
 		return errUnauthorized
 	}
 

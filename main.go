@@ -29,15 +29,7 @@ func main() {
 	flag.Parse()
 
 	env := newEnv()
-
-	r := newRouter(env.cfg.KeyHash)
-	r.GET("/health", checkHealth, false)
-	r.POST("/redeploy", env.triggerRedeployment, true)
-
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", *port),
-		Handler: r,
-	}
+	server := newServer(env, *port)
 
 	log.Infow("Starting redeployer service", "port", port)
 	err := server.ListenAndServe()
@@ -115,6 +107,17 @@ func (e *env) prepareDeployment(ctx *Context, target Target, image string) (stri
 func checkHealth(ctx *Context) (int, error) {
 	ctx.sendOK()
 	return http.StatusOK, nil
+}
+
+func newServer(e *env, port int) *http.Server {
+	r := newRouter(e.cfg.Authentication)
+	r.GET("/health", checkHealth, false)
+	r.POST("/redeploy", e.triggerRedeployment, true)
+
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: r,
+	}
 }
 
 func newEnv() *env {

@@ -1,10 +1,14 @@
 {
-    "keyHash": "2bf2f3e79f740a79622b0ca7738aa58a7463e27186d903129944838d679e0f65",
+    "authentication": {
+        "key": "alg=scrypt$N=16384$r=8$p=1$keyLen=32$hash=b8059f5d26826ef3af0faa424a8fc0f51f80bd62aa46ada056f7174e08a69739",
+        "salt": "478c1d403dec20707cf487f81c06d646"
+    },
     "services": {
         "httplogger": {
             "id": "httplogger",
             "binary": "/bin/sh",
-            "script": "./resources/httplogger.sh"
+            "script": "./resources/httplogger.sh",
+            "mustMatch": "czarsimon/httplogger:*"
         }
     }
 }
