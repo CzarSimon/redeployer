@@ -1,38 +1,28 @@
 package main
 
-import "os/exec"
-
-import "strings"
+import (
+	"os/exec"
+	"strings"
+)
 
 // Config service configuration
 type Config struct {
-	Authentication AuthKey           `json:"authentication,omitempty"`
-	Services       map[string]Target `json:"services,omitempty"`
+	Authentication AuthKey           `yaml:"authentication,omitempty"`
+	Services       map[string]Target `yaml:"services,omitempty"`
 }
 
 // AuthKey authentication key
 type AuthKey struct {
-	Key  string `json:"key,omitempty"`
-	Salt string `json:"salt,omitempty"`
-}
-
-// RedeploymentRequest request body for redeployments.
-type RedeploymentRequest struct {
-	Target string `json:"target,omitempty"`
-	Image  string `json:"image,omitempty"`
-}
-
-// ResponseMessage response containing a string message.
-type ResponseMessage struct {
-	Message string `json:"message,omitempty"`
+	Key  string `yaml:"key,omitempty"`
+	Salt string `yaml:"salt,omitempty"`
 }
 
 // Target defines a script to be run by a webhook trigger.
 type Target struct {
-	ID        string `json:"id,omitempty"`
-	Binary    string `json:"binary,omitempty"`
-	Script    string `json:"script,omitempty"`
-	MustMatch string `json:"mustMatch,omitempty"`
+	ID        string `yaml:"id,omitempty"`
+	Binary    string `yaml:"binary,omitempty"`
+	Script    string `yaml:"script,omitempty"`
+	MustMatch string `yaml:"mustMatch,omitempty"`
 }
 
 func (t Target) execute(ctx *Context, args ...string) (string, error) {
@@ -49,4 +39,15 @@ func (t Target) execute(ctx *Context, args ...string) (string, error) {
 	}
 
 	return output, err
+}
+
+// RedeploymentRequest request body for redeployments.
+type RedeploymentRequest struct {
+	Target string `json:"target,omitempty"`
+	Image  string `json:"image,omitempty"`
+}
+
+// ResponseMessage response containing a string message.
+type ResponseMessage struct {
+	Message string `json:"message,omitempty"`
 }

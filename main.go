@@ -10,13 +10,14 @@ import (
 	"regexp"
 
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
 var log = getLogger()
 
 var (
 	port       = flag.Int("port", 9000, "Port to expose webhooks on")
-	configPath = flag.String("config", "/etc/redeployer/config.json", "Path to configuration")
+	configPath = flag.String("config", "/etc/redeployer/config.yaml", "Path to configuration")
 )
 
 type env struct {
@@ -150,7 +151,7 @@ func newEnv() *env {
 	}
 
 	var cfg Config
-	err = json.Unmarshal(raw, &cfg)
+	err = yaml.Unmarshal(raw, &cfg)
 	if err != nil {
 		log.Fatalw("Failed to parse config file", "error", err)
 	}
