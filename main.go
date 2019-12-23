@@ -75,7 +75,7 @@ func (e *env) findTarget(ctx *Context, req RedeploymentRequest) (Target, int, er
 
 	ok = pattern.MatchString(req.Image)
 	if !ok {
-		log.Errorw("Image did not match target", "image", req.Image, "regex", target.MustMatch, "requestId", ctx.id)
+		log.Warnw("Image did not match target", "image", req.Image, "regex", target.MustMatch, "requestId", ctx.id)
 		return target, http.StatusForbidden, errForbidden
 	}
 
@@ -98,10 +98,7 @@ func (e *env) redeploy(ctx *Context, target Target, image string) {
 	log.Infow(output, "requestId", ctx.id)
 
 	if removeOld && image != previous {
-		err = e.docker.RemoveImage(ctx, previous)
-		if err != nil {
-			log.Errorw("Redeployment failed", "requestId", ctx.id)
-		}
+		e.docker.RemoveImage(ctx, previous)
 	}
 
 	log.Debugw("Redeployment succeded", "executionTime", ctx.latency(), "requestId", ctx.id)

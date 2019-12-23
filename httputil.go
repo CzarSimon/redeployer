@@ -172,7 +172,7 @@ func logIncommingRequest(ctx *Context) {
 }
 
 func logOutgoingRequest(ctx *Context, status int) {
-	log.Debugw("Reqeust complete", "status", status, "latency", ctx.latency(), "requestId", ctx.id)
+	log.Debugw("Request complete", "status", status, "latency", ctx.latency(), "requestId", ctx.id)
 }
 
 func assertMehthod(ctx *Context, method string, w http.ResponseWriter) error {
